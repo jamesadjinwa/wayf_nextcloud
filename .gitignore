@@ -1,0 +1,15 @@
+# docker 
+*.config
+*.cfg
+.cache
+docker-compose.yml
+
+# ansible 
+*.enc
+passfile
+hosts
+
+# python
+venv/
+.venv
+
