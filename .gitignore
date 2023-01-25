@@ -8,8 +8,12 @@ docker-compose.yml
 *.enc
 passfile
 hosts
+vars/
 
 # python
 venv/
 .venv
+__pycache__/
 
+# vscode
+.vscode

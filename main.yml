@@ -1,17 +1,25 @@
 ---
 - name: Server setup
-  hosts: lab
-  become: yes
+  hosts: all
+  become: true
 
   tasks:
+  - name: Gather package facts
+    ansible.builtin.package_facts:
+      manager: "auto"
+
   - name: Install Podman
     ansible.builtin.apt:
       name: podman
-      state: latest
-      update_cache: yes
+      state: present
+      update_cache: true
+    when: "'podman' not in ansible_facts.packages"
+    
+    tags: provision
+  
 
-- name: Nextcloud environment setup 
-  hosts: lab
+- name: Nextcloud environment setup
+  hosts: all
 
   tasks:
   - name: Create Network
@@ -20,51 +28,57 @@
 
   - name: Create Volumes
     containers.podman.podman_volume:
+      state: present # state
       name: "{{ item }}"
     loop:
       - nextcloud-app
       - nextcloud-data
       - nextcloud-db
+    
+    tags: provision
 
 - name: Nextcloud Database setup
-  hosts: lab
+  hosts: all
 
   tasks:
   - name: Deploy PostgreSQL
     containers.podman.podman_container:
-      name: nextcloud-db 
+      name: nextcloud-db
       image: docker.io/postgres:13.4-alpine
-      state: started
-      restart: yes
+      state: started # state
+      restart: true
       volume:
         - nextcloud-db:/var/lib/postgresql/data
-      network: 
+      network:
         - nextcloud-net
       env:
         POSTGRES_USER: "{{ postgres_user }}"
         POSTGRES_PASSWORD: "{{ postgres_password }}"
         POSTGRES_DB: "{{ postgres_db }}"
-      recreate: true
-    no_log: True
+    no_log: true
+
+  - name: Pause for 1 minute untill database is ready
+    ansible.builtin.pause:
+      minutes: 1
 
 
 - name: Nextcloud Setup
-  hosts: lab
+  hosts: all
 
   tasks:
   - name: Deploy nextcloud container
     containers.podman.podman_container:
       name: nextcloud
       image: docker.io/nextcloud
-      state: started
-      restart: yes
+      state: started # state
+      restart: true
       volume:
         - nextcloud-app:/var/www/html
         - nextcloud-data:/var/www/html/data
-      network: 
+      network:
         - nextcloud-net
       ports:
-        - 8085:80
+        - 8080:80
       env:
         POSTGRES_HOST: "nextcloud-db"
         POSTGRES_USER: "{{ postgres_user }}"
@@ -72,5 +86,6 @@
         POSTGRES_DB: "{{ postgres_db }}"
         NEXTCLOUD_ADMIN_USER: "{{ nextcloud_admin_user }}"
         NEXTCLOUD_ADMIN_PASSWORD: "{{ nextcloud_admin_password }}"
-      recreate: true
-    no_log: True
+        NEXTCLOUD_TRUSTED_DOMAINS: "{{ nextcloud_trusted_domains }}"
+      # recreate: true
+    no_log: true
