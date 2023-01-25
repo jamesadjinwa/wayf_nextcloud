@@ -1,0 +1,31 @@
+- name: Collabora setup
+  hosts: all
+  gather_facts: false
+
+  tasks:
+  # - name: Collabora volumes
+  #   containers.podman.podman_volume:
+  #     state: present # state
+  #     name: "{{ item }}"
+  #     loop:
+  #       - collabora-config
+
+  - name: Deploy Collabora
+    containers.podman.podman_container:
+      name: collabora
+      image: docker.io/collabora/code
+      state: absent
+      restart: true
+      # volume:
+      #   - collabora-config:/etc/coolwsd/coolwsd.xml
+      network:
+        - nextcloud-net
+      ports:
+        - 9980:9980
+      env:
+        username: "{{ collabora_username }}"
+        password: "{{ collabora_password }}"
+        server_name: "{{ collabora_server_name }}"
+        extra_params: "-o:ssl.enable=false"
+    
+
